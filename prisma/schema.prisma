@@ -1,0 +1,68 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  // name type attributes(optional) fieldModifier(optional)
+  id               String          @id @map("_id")
+  name             String          @unique
+  age              Int
+  role             Role            @default(BASIC)
+  // largeNumber  BigInt
+  // preferences  Json
+  // blob         Bytes
+  // nonSupport   Unsupported("datatype")
+  writtenPost      Post[]          @relation("writtenPosts")
+  favoritePost     Post[]          @relation("favoritedPosts")
+  userPreference   UserPreference? @relation("userPrefs", fields: [userPreferenceId], references: [id])
+  userPreferenceId String?         @unique @db.ObjectId
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  // block-level attribute
+  // defines that 2 users cannot have same name and age, ie a combination of age and name acts as unique
+  @@unique([age, name])
+  @@index([id, name])
+}
+
+model UserPreference {
+  id           String  @id @default(auto()) @map("_id") @db.ObjectId
+  emailUpdates Boolean
+  user         User?   @relation("userPrefs")
+}
+
+model Post {
+  id          String     @id @map("_id")
+  rating      Float
+  author      User       @relation("writtenPosts", fields: [authorId], references: [id])
+  authorId    String
+  favoritedBy User?      @relation("favoritedPosts", fields: [favoritedId], references: [id])
+  // put ? in the datatype defining column to show it as optional
+  favoritedId String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  userId      String
+  categoryIDs String[]   @db.ObjectId
+  categories  Category[] @relation(fields: [categoryIDs], references: [id])
+}
+
+model Category {
+  id      String   @id @default(auto()) @map("_id") @db.ObjectId
+  name    String
+  postIDs String[]
+  posts   Post[]   @relation(fields: [postIDs], references: [id])
+}
+
+// defining enum
+enum Role {
+  BASIC
+  ADMIN
+}
